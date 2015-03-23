@@ -1,0 +1,13 @@
+{
+    "name": "angular-azure-blob",
+    "version": "0.0.1",
+    "dependencies": {
+        "angular": "latest",
+        "jquery": "latest",
+        "underscore": "latest",
+        "cryptojslib": "latest"
+    },
+    "devDependencies": {
+        "angular-mocks": "latest"
+    }
+}
