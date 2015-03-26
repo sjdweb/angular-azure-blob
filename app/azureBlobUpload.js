@@ -108,7 +108,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 return deferred.promise;
             }
 
-            var uri = state.blobUri + '&comp=block&blockid=' + block.getBlockId();
+            var uri = state.blobUri + '&comp=block&blockid=' + block.blockIdBase64;
             var requestData = block.data;
 
             if (requestData === null) {
@@ -336,7 +336,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
 
             var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
             state.blocks.forEach(function(block) {
-                requestBody += '<Latest>' + block.getBlockId() + '</Latest>';
+                requestBody += '<Latest>' + block.blockIdBase64 + '</Latest>';
             });
             requestBody += '</BlockList>';
 
