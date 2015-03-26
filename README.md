@@ -14,11 +14,22 @@ Prerequisites
 
 How to use
 --------------
+Build the library on your machine
+```javascript
+npm install
+bower install
+grunt package
+```
+
+**angular-azure-blob.js** will be in the dist/ folder for use.
+
+
 Reference the dist library in your SPA along with CryptoJS MD5 and Underscore.js
 ```HTML
 <script src="/libs/underscore.min.js"></script>
 <script src="/libs/cryptojs/rollups/md5.js"></script>
-<script type="text/javascript" src="/js/angular-azure-blob.js"></script>
+<script src="/libs/cryptojs/components/lib-typedarrays-min.js"></script>
+<script src="/dist/angular-azure-blob.js"></script>
 ```
 
 Require the azureBlobStorage module:
