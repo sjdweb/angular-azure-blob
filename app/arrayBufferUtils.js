@@ -1,15 +1,7 @@
 angular.module('azureBlobStorage').service('arrayBufferUtils', function() {
 
     function arraybuffer2WordArray(arrayBuffer) {
-        var words = [],
-            u8Arr = new Uint8Array(arrayBuffer),
-            len = u8Arr.length;
-
-        for (var i = 0; i < len; i++) {
-            words[i >>> 2] |= (u8Arr[i] & 0xff) << (24 - (i % 4) * 8);
-        }
-
-        return CryptoJS.lib.WordArray.create(words, len);
+        return CryptoJS.lib.WordArray.create(arrayBuffer);
     }
 
     this.getArrayBufferMd5 = function(arrayBuffer) {

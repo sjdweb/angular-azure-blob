@@ -1,76 +1,155 @@
 angular.module('azureBlobStorage').factory('azureBlobUpload', [
     '$log', '$http', '$q', 'arrayBufferUtils', function ($log, $http, $q, arrayBufferUtils) {
 
-        function calculateFileMd5(file, done) {
+        // config { state, done, doneOne }
+        function readNextSetOfBlocks(config) {
+            var numberOfBlocksToRead = 10;
+
+            var state = config.state;
+            var done = config.done || function() {};
+            var doneOne = config.doneOne || function() {};
+            var doneHalf = config.doneHalf || function() {};
+            var alreadyReading = config.alreadyReading || function() { $log.debug('Already reading next set of blocks!'); };
+
+            if (state.readingNextSetOfBlocks) {
+                alreadyReading();
+                return;
+            }
+
+            state.readingNextSetOfBlocks = true;
+
             var fileReader = new FileReader();
-            var start = performance.now();
+            var skip = state.blocksReadIndex;
+            var numberOfBlocks = state.numberOfBlocks;
+
+            if (skip >= numberOfBlocks) {
+                // FINISHED. WHY ARE YOU HERE?
+                done();
+                state.readingNextSetOfBlocks = false;
+                return;
+            }
+
+            var end = (skip + numberOfBlocksToRead) > numberOfBlocks ? numberOfBlocks : (skip + numberOfBlocksToRead);
+
+            var blocksToRead = state.blocks.slice(skip, end);
+            var currentIndex = 0;
+
+            var readNextBlock = function() {
+                var fileContent = state.file.slice(blocksToRead[currentIndex].pointer, blocksToRead[currentIndex].end);
+                fileReader.readAsArrayBuffer(fileContent);
+            };
 
             fileReader.onload = function(e) {
-                var md5 = arrayBufferUtils.getArrayBufferMd5(e.target.result);
-                var end = performance.now();
-                $log.debug('MD5 of whole file took ' + (end - start) + 'ms');
+                if (e.target.readyState === FileReader.DONE && !state.cancelled) {
+                    var currentBlock = blocksToRead[currentIndex];
+                    $log.debug('Read block ' + currentBlock.blockId);
 
-                done(md5);
-            };
+                    currentBlock.read = true;
+                    currentBlock.data = new Uint8Array(e.target.result);
 
-            fileReader.readAsArrayBuffer(file);
+                    // Calculate block MD5
+                    var blockMd5Start = performance.now();
+                    currentBlock.md5 = arrayBufferUtils.getArrayBufferMd5(currentBlock.data);
+                    var blockMd5End = performance.now();
+                    $log.debug("Call to getArrayBufferMd5 for block " + currentBlock.blockId + " took " + (blockMd5End - blockMd5Start) + " milliseconds.");
 
-            fileReader.onerror = function(e) {
-                $log.error(e);
-            };
-        }
+                    // Iterate file MD5
+                    if (state.calculateFileMd5) {
+                        state.fileMd5.append(currentBlock.data);
+                    }
 
-        function uploadBlock(state, block) {
-            $log.debug("uploadBlock: block id = " + block.blockId);
+                    // Useful to keep things fast
+                    if (currentIndex === 0) {
+                        doneOne();
+                    }
 
-            var deferred = $q.defer();
+                    if (currentIndex === (numberOfBlocksToRead / 2 - 1)) {
+                        doneHalf();
+                    }
 
-            var reader = new FileReader();
-            reader.onloadend = function(evt) {
-                if (evt.target.readyState == FileReader.DONE && !state.cancelled) { // DONE == 2
-                    var uri = state.blobUri + '&comp=block&blockid=' + block.blockIdBase64;
-                    var requestData = new Uint8Array(evt.target.result);
-
-                    var start = performance.now();
-                    var blockMd5 = arrayBufferUtils.getArrayBufferMd5(evt.target.result);
-                    var end = performance.now();
-
-                    $log.debug("Call to getArrayBufferMd5 for block " + block.blockId + " took " + (end - start) + " milliseconds.");
-
-                    $http.put(uri, requestData,
-                        {
-                            headers: {
-                                'x-ms-blob-type': 'BlockBlob',
-                                'Content-Type': state.file.type,
-                                'Content-MD5': blockMd5.toString(CryptoJS.enc.Base64)
-                            },
-                            transformRequest: [],
-                        }).success(function (data, status, headers, config) {
-                            $log.debug('Put block successfully ' + block.blockId);
-
-                            deferred.resolve({
-                                requestLength: requestData.length,
-                                data: data,
-                                headers: headers,
-                                config: config
-                            });
-                        })
-                        .error(function (data, status, headers, config) {
-                            $log.error('Put block error');
-                            $log.error(data);
-
-                            deferred.reject({
-                                data: data,
-                                status: status,
-                                headers: headers,
-                                config: config
-                            });
-                        });
+                    ++currentIndex;
+                    if (currentIndex < blocksToRead.length) {
+                        readNextBlock();
+                    } else {
+                        done();
+                        state.blocksReadIndex = state.blocksReadIndex + currentIndex;
+                        state.readingNextSetOfBlocks = false;
+                    }
                 }
             };
 
-            var fileContent = state.file.slice(block.pointer, block.end);
-            reader.readAsArrayBuffer(fileContent);
+            readNextBlock();
+        }
+
+        function blockUploading(state, block) {
+            block.uploading = true;
+
+            var getReadAndUnprocessed = function() {
+                return state.blocks.filter(function(b) {
+                    return b.read === true && b.uploading === false && b.resolved === false;
+                });
+            };
+
+            // Check that there available blocks
+            if (getReadAndUnprocessed().length < 5 && !state.readingNextSetOfBlocks) {
+                readNextSetOfBlocks({
+                    state: state
+                });
+            }
+        }
+
+        function uploadBlock(state, block) {
+            var deferred = $q.defer();
+
+            $log.debug("uploadBlock: block id = " + block.blockId);
+
+            if (state.cancelled) {
+                deferred.reject('Cancelled');
+                return deferred.promise;
+            }
+
+            var uri = state.blobUri + '&comp=block&blockid=' + block.getBlockId();
+            var requestData = block.data;
+
+            if (requestData === null) {
+                throw new Error('Block ' + block.blockId + ' has no data to upload!');
+            }
+
+            blockUploading(state, block);
+
+            $http.put(uri, requestData,
+                {
+                    headers: {
+                        'x-ms-blob-type': 'BlockBlob',
+                        'Content-Type': state.file.type,
+                        'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
+                    },
+                    transformRequest: []
+                }).success(function(data, status, headers, config) {
+                    $log.debug('Put block successfully ' + block.blockId);
+
+                    // Clear data
+                    block.data = null;
+                    block.uploading = false;
+
+                    deferred.resolve({
+                        requestLength: requestData.length,
+                        data: data,
+                        headers: headers,
+                        config: config
+                    });
+                })
+                .error(function(data, status, headers, config) {
+                    $log.error('Put block error');
+                    $log.error(data);
+
+                    deferred.reject({
+                        data: data,
+                        status: status,
+                        headers: headers,
+                        config: config
+                    });
+                });
 
             return deferred.promise;
         }
@@ -108,7 +187,11 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                     blockIdBase64: btoa(blockId),
                     pointer: pointer,
                     end: end,
-                    resolved: false
+                    resolved: false,
+                    read: false,
+                    data: null,
+                    md5: null,
+                    uploading: false
                 });
 
                 index++;
@@ -141,6 +224,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 if (state.progress) state.progress(percentComplete, result.data, result.status, result.headers, result.config);
 
                 removeFromCurrentlyProcessing(action);
+
                 var hasNext = addNextAction();
                 if (!hasNext && !_.any(currentlyProcessing)) {
                     commitBlockList(state);
@@ -164,8 +248,8 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 var unresolved = getUnresolved();
                 if (_.any(unresolved)) {
                     var block = unresolved[0];
-
                     var action = uploadBlock(state, block);
+
                     action.then(function(result) {
                         block.resolved = true;
                         removeProcessedAction(action, result);
@@ -180,20 +264,19 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 return unresolved.length;
             };
 
-            // Calculate whole file md5 in background
-            if(config.calculateFileMd5) {
-                calculateFileMd5(config.file, function (md5) {
-                    state.fileMd5 = md5;
-                });
-            }
-
             state.startedUpload = performance.now();
 
-            for (var j = 0; j < 8; j++) {
-                if(state.blocks[j]) {
-                    addNextAction(state.blocks[j]);
+            // Get first set of blocks and kick off the upload process.
+            readNextSetOfBlocks({
+                state: state,
+                done: function() {
+                    for (var j = 0; j < 8; j++) {
+                        if(state.blocks[j]) {
+                            addNextAction(state.blocks[j]);
+                        }
+                    }
                 }
-            }
+            });
 
             return {
                 cancel: function() {
@@ -234,6 +317,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 currentFilePointer: 0,
                 blocks: [],
                 blockIdPrefix: 'block-',
+                blocksReadIndex: 0,
                 bytesUploaded: 0,
                 file: file,
                 blobUri: config.blobUri,
@@ -242,7 +326,8 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 error: config.error,
                 cancelled: false,
                 calculateFileMd5: config.calculateFileMd5 || false,
-                fileMd5: null
+                fileMd5: arrayBufferUtils.getArrayBufferMd5Iterative(),
+                readingNextSetOfBlocks: false
             };
         }
 
@@ -251,7 +336,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
 
             var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
             state.blocks.forEach(function(block) {
-                requestBody += '<Latest>' + block.blockIdBase64 + '</Latest>';
+                requestBody += '<Latest>' + block.getBlockId() + '</Latest>';
             });
             requestBody += '</BlockList>';
 
@@ -261,7 +346,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                         'x-ms-blob-content-type': state.file.type,
                     }
                 }).success(function(data, status, headers, config) {
-                    if (state.complete) state.complete(data, status, headers, config, state.fileMd5);
+                    if (state.complete) state.complete(data, status, headers, config, state.fileMd5.finalize());
 
                     $log.debug('Upload took ' + (performance.now() - state.startedUpload) + 'ms');
                 })

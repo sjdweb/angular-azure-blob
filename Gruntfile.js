@@ -32,7 +32,7 @@ module.exports = function(grunt) {
         separator: ';'
       },
       dist: {
-        src: [ 'app/*.js', 'tmp/*.js' ],
+        src: [ 'app/module.js', 'app/*.js', 'tmp/*.js' ],
         dest: 'dist/angular-azure-blob.js'
       }
     },
@@ -53,14 +53,14 @@ module.exports = function(grunt) {
     watch: {
       dev: {
         files: [ 'Gruntfile.js', 'app/*.js', ],
-        tasks: [ 'jshint', 'karma:unit', 'concat:dist',, 'clean:temp' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'clean:temp' ],
         options: {
           atBegin: true
         }
       },
       min: {
         files: [ 'Gruntfile.js', 'app/*.js' ],
-        tasks: [ 'jshint', 'karma:unit', 'concat:dist', 'clean:temp', 'uglify:dist' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'clean:temp', 'uglify:dist' ],
         options: {
           atBegin: true
         }
