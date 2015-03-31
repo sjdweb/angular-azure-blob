@@ -8,22 +8,26 @@
   <body ng-app="azureBlobStorage">
     <div ng-controller="DemoController" class="container">
       <form>
-        <input type="file" ng-file-select="selectFile($files)" />
+        <input type="file" file-selected="selectFile($files)" />
       </form>
     </div>
 
     <script type="text/javascript" src="libs/angular/angular.min.js"></script>
-    <script type="text/javascript" src="libs/underscore/underscore-min.js"></script>
-    <script type="text/javascript" src="libs/cryptojslib/rollups/md5.js"></script>
-    <script type="text/javascript" src="libs/cryptojslib/components/lib-typedarrays-min.js"></script>
-    <script type="text/javascript" src="dist/angular-azure-blob.js"></script>
+    <script type="text/javascript" src="app/angular/module.js"></script>
+    <script type="text/javascript" src="app/angular/ngFileSelect.js"></script>
+    <script type="text/javascript" src="app/angular/azureBlobUpload.js"></script>
+
+    <!-- <script type="text/javascript" src="libs/angular/angular.min.js"></script>
+    <script type="text/javascript" src="dist/angular-azure-blob.js"></script> -->
 
     <script type="text/javascript">
       angular.module('azureBlobStorage').controller('DemoController', [
         '$scope', 'azureBlobUpload', function ($scope, azureBlobUpload) {
           $scope.selectFile = function (files) {
-            debugger;
             azureBlobUpload.upload({
+                workerFileName: 'azureBlobUploadWorker.js',
+                path: '/app/',
+                libPath: '/libs/',
                 blobUri: 'xxx',
                 file: files[0],
                 process: function cb(){},

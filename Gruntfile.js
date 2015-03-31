@@ -10,7 +10,8 @@ module.exports = function(grunt) {
     uglify: {
       dist: {
         files: {
-          'dist/angular-azure-blob.js': [ 'dist/angular-azure-blob.js' ]
+          'dist/angular-azure-blob.js': [ 'dist/angular-azure-blob.js' ],
+          'dist/azure-blob-upload-worker.js': [ 'dist/azure-blob-upload-worker.js' ]
         },
         options: {
           mangle: false
@@ -32,8 +33,12 @@ module.exports = function(grunt) {
         separator: ';'
       },
       dist: {
-        src: [ 'app/module.js', 'app/*.js', 'tmp/*.js' ],
+        src: [ 'app/angular/module.js', 'app/angular/*.js', 'tmp/*.js' ],
         dest: 'dist/angular-azure-blob.js'
+      },
+      worker: {
+        src: [ 'app/azureBlobUploadWorker.js' ],
+        dest: 'dist/azure-blob-upload-worker.js'
       }
     },
 
@@ -45,7 +50,7 @@ module.exports = function(grunt) {
       server: {
         options: {
           hostname: 'localhost',
-          port: 8080
+          port: 8089
         }
       }
     },
@@ -53,14 +58,14 @@ module.exports = function(grunt) {
     watch: {
       dev: {
         files: [ 'Gruntfile.js', 'app/*.js', ],
-        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'clean:temp' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'concat:worker', 'clean:temp' ],
         options: {
           atBegin: true
         }
       },
       min: {
         files: [ 'Gruntfile.js', 'app/*.js' ],
-        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'clean:temp', 'uglify:dist' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'concat:worker', 'clean:temp', 'uglify:dist' ],
         options: {
           atBegin: true
         }
@@ -73,7 +78,7 @@ module.exports = function(grunt) {
           archive: 'dist/<%= pkg.name %>-<%= pkg.version %>.zip'
         },
         files: [{
-          src: [  'dist/*.js', 'libs/**' ]
+          src: [  'dist/*.js', 'LICENSE', 'libs/underscore/**', 'libs/q/**', 'libs/cryptojslib/**', 'libs/atomic/**' ]
         }]
       }
     },
@@ -110,5 +115,5 @@ module.exports = function(grunt) {
   grunt.registerTask('test', [ 'clean:dist', 'jshint', 'karma:continuous' ]);
   grunt.registerTask('junit', [ 'clean:dist', 'jshint', 'karma:junit' ]);
   grunt.registerTask('minified', [ 'clean:dist', 'connect:server', 'watch:min' ]);
-  grunt.registerTask('package', [ 'clean:dist', 'jshint', /*'karma:unit', */'concat:dist', 'uglify:dist', 'clean:temp', 'compress:dist' ]);
+  grunt.registerTask('package', [ 'clean:dist', 'jshint', /*'karma:unit', */'concat:dist', 'concat:worker', 'uglify:dist', 'clean:temp', 'compress:dist' ]);
 };

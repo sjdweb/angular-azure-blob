@@ -1,4 +1,4 @@
-angular.module('azureBlobStorage').directive('ngFileSelect', [ '$parse', '$http', '$timeout', function($parse, $http, $timeout) {
+angular.module('azureBlobStorage').directive('fileSelected', [ '$parse', '$http', '$timeout', function($parse, $http, $timeout) {
     return function(scope, elem, attr) {
         var fn = $parse(attr.ngFileSelect);
         elem.bind('change', function(evt) {
