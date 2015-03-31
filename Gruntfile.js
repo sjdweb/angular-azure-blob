@@ -78,7 +78,17 @@ module.exports = function(grunt) {
           archive: 'dist/<%= pkg.name %>-<%= pkg.version %>.zip'
         },
         files: [{
-          src: [  'dist/*.js', 'LICENSE', 'libs/underscore/**', 'libs/q/**', 'libs/cryptojslib/**', 'libs/atomic/**' ]
+          src: [
+            'dist/*.js',
+            'LICENSE',
+            'libs/underscore/underscore-min.js',
+            'libs/underscore/underscore-min.map',
+            'libs/cryptojslib/rollups/md5.js',
+            'libs/cryptojslib/components/lib-typedarrays-min.js',
+            'libs/cryptojslib/components/enc-base64-min.js',
+            'libs/atomic/dist/atomic.min.js',
+            'libs/q/q.js'
+          ]
         }]
       }
     },
