@@ -1,6 +1,6 @@
 {
     "name": "angular-azure-blob",
-    "version": "0.0.2",
+    "version": "0.0.3",
     "dependencies": {
         "angular": "latest",
         //"jquery": "latest",

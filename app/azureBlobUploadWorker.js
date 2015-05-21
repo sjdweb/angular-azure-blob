@@ -1,27 +1,27 @@
-(function(){
- 
-  if ("performance" in self === false) {
-      self.performance = {};
-  }
-  
-  Date.now = (Date.now || function () {  // thanks IE8
-      return new Date().getTime();
-  });
- 
-  if ("now" in self.performance === false) {
-    var nowOffset = Date.now();
-    
-    if (performance.timing && performance.timing.navigationStart) {
-      nowOffset = performance.timing.navigationStart;
+(function () {
+
+    if ("performance" in self === false) {
+        self.performance = {};
     }
- 
-    self.performance.now = function now() {
-      return Date.now() - nowOffset;
-    };
-  }
+
+    Date.now = (Date.now || function () {  // thanks IE8
+        return new Date().getTime();
+    });
+
+    if ("now" in self.performance === false) {
+        var nowOffset = Date.now();
+
+        if (performance.timing && performance.timing.navigationStart) {
+            nowOffset = performance.timing.navigationStart;
+        }
+
+        self.performance.now = function now() {
+            return Date.now() - nowOffset;
+        };
+    }
 })();
 
-(function () {
+(function() {
     var arrayBufferUtils = (function() {
         function arraybuffer2WordArray(arrayBuffer) {
             return CryptoJS.lib.WordArray.create(arrayBuffer);
@@ -39,7 +39,7 @@
         }
 
         IterativeMd5.prototype.append = function(arrayBuffer) {
-            if(this._md5 === null) {
+            if (this._md5 === null) {
                 this._md5 = CryptoJS.algo.MD5.create();
             }
 
@@ -63,7 +63,7 @@
         debug: function(message) {
             self.postMessage({ type: 'log', logType: 'debug', message: message });
         },
-        error: function (message) {
+        error: function(message) {
             self.postMessage({ type: 'log', logType: 'error', message: message });
         }
     };
@@ -138,10 +138,10 @@
     function readNextSetOfBlocks(config) {
         var numberOfBlocksToRead = 10;
 
-        var done = config.done || function () { };
-        var doneOne = config.doneOne || function () { };
-        var doneHalf = config.doneHalf || function () { };
-        var alreadyReading = config.alreadyReading || function () { $log.debug('Already reading next set of blocks!'); };
+        var done = config.done || function() {};
+        var doneOne = config.doneOne || function() {};
+        var doneHalf = config.doneHalf || function() {};
+        var alreadyReading = config.alreadyReading || function() { $log.debug('Already reading next set of blocks!'); };
 
         if (config.state.readingNextSetOfBlocks) {
             alreadyReading();
@@ -150,7 +150,7 @@
 
         config.state.readingNextSetOfBlocks = true;
 
-        var fileReader = new FileReader();
+        var fileReader = new FileReaderSync();
         var skip = state.blocksReadIndex;
         var numberOfBlocks = state.numberOfBlocks;
 
@@ -166,47 +166,46 @@
         var blocksToRead = config.state.blocks.slice(skip, end);
         var currentIndex = 0;
 
-        var readNextBlock = function () {
+        var readNextBlock = function() {
             var fileContent = config.state.file.slice(blocksToRead[currentIndex].pointer, blocksToRead[currentIndex].end);
-            fileReader.readAsArrayBuffer(fileContent);
+            var result = fileReader.readAsArrayBuffer(fileContent);
+            loaded(result);
         };
 
-        fileReader.onload = function (e) {
-            if (e.target.readyState === FileReader.DONE && !config.state.cancelled) {
-                var currentBlock = blocksToRead[currentIndex];
-                $log.debug('Read block ' + currentBlock.blockId);
+        var loaded = function(result) {
+            var currentBlock = blocksToRead[currentIndex];
+            $log.debug('Read block ' + currentBlock.blockId);
 
-                currentBlock.read = true;
-                currentBlock.data = new Uint8Array(e.target.result);
+            currentBlock.read = true;
+            currentBlock.data = result;
 
-                // Calculate block MD5
-                var blockMd5Start = performance.now();
-                currentBlock.md5 = arrayBufferUtils.getArrayBufferMd5(currentBlock.data);
-                var blockMd5End = performance.now();
-                $log.debug("Call to getArrayBufferMd5 for block " + currentBlock.blockId + " took " + (blockMd5End - blockMd5Start) + " milliseconds.");
+            // Calculate block MD5
+            var blockMd5Start = performance.now();
+            currentBlock.md5 = arrayBufferUtils.getArrayBufferMd5(currentBlock.data);
+            var blockMd5End = performance.now();
+            $log.debug("Call to getArrayBufferMd5 for block " + currentBlock.blockId + " took " + (blockMd5End - blockMd5Start) + " milliseconds.");
 
-                // Iterate file MD5
-                if (config.state.calculateFileMd5) {
-                    config.state.fileMd5.append(currentBlock.data);
-                }
+            // Iterate file MD5
+            if (config.state.calculateFileMd5) {
+                config.state.fileMd5.append(currentBlock.data);
+            }
 
-                // Useful to keep things fast
-                if (currentIndex === 0) {
-                    doneOne();
-                }
+            // Useful to keep things fast
+            if (currentIndex === 0) {
+                doneOne();
+            }
 
-                if (currentIndex === (numberOfBlocksToRead / 2 - 1)) {
-                    doneHalf();
-                }
+            if (currentIndex === (numberOfBlocksToRead / 2 - 1)) {
+                doneHalf();
+            }
 
-                ++currentIndex;
-                if (currentIndex < blocksToRead.length) {
-                    readNextBlock();
-                } else {
-                    done();
-                    config.state.blocksReadIndex = config.state.blocksReadIndex + currentIndex;
-                    config.state.readingNextSetOfBlocks = false;
-                }
+            ++currentIndex;
+            if (currentIndex < blocksToRead.length) {
+                readNextBlock();
+            } else {
+                done();
+                config.state.blocksReadIndex = config.state.blocksReadIndex + currentIndex;
+                config.state.readingNextSetOfBlocks = false;
             }
         };
 
@@ -216,8 +215,8 @@
     function blockUploading(block) {
         block.uploading = true;
 
-        var getReadAndUnprocessed = function () {
-            return state.blocks.filter(function (b) {
+        var getReadAndUnprocessed = function() {
+            return state.blocks.filter(function(b) {
                 return b.read === true && b.uploading === false && b.resolved === false;
             });
         };
@@ -252,7 +251,7 @@
             'x-ms-blob-type': 'BlockBlob',
             'Content-Type': state.file.type,
             'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
-        }).success(function (result, req) {
+        }).success(function(result, req) {
             $log.debug('Put block successfully ' + block.blockId);
 
             // Clear data
@@ -260,10 +259,10 @@
             block.uploading = false;
 
             deferred.resolve({
-                requestLength: requestData.length,
+                requestLength: block.size,
                 data: result,
             });
-        }).error(function (result, req) {
+        }).error(function(result, req) {
             $log.error('Put block error');
             $log.error(data);
 
@@ -297,6 +296,7 @@
                 blockId: blockId,
                 blockIdBase64: btoa(blockId),
                 pointer: pointer,
+                size: (end - pointer),
                 end: end,
                 resolved: false,
                 read: false,
@@ -311,21 +311,21 @@
 
         var currentlyProcessing = [];
 
-        var addToCurrentlyProcessing = function (block, action) {
+        var addToCurrentlyProcessing = function(block, action) {
             currentlyProcessing.push({ action: action, block: block });
         };
 
-        var removeFromCurrentlyProcessing = function (action) {
+        var removeFromCurrentlyProcessing = function(action) {
             currentlyProcessing.splice(currentlyProcessing.indexOf(_.findWhere(currentlyProcessing, { action: action })), 1);
         };
 
-        var getUnresolved = function () {
-            return state.blocks.filter(function (b) {
+        var getUnresolved = function() {
+            return state.blocks.filter(function(b) {
                 return b.resolved === false && !_.findWhere(currentlyProcessing, { block: b });
             });
         };
 
-        var removeProcessedAction = function (action, result) {
+        var removeProcessedAction = function(action, result) {
             action.resolved = true;
 
             state.bytesUploaded += result.requestLength;
@@ -343,7 +343,7 @@
             }
         };
 
-        var processRejectedAction = function (block, action, rejectReason) {
+        var processRejectedAction = function(block, action, rejectReason) {
             // Remove from currently processing
             removeFromCurrentlyProcessing(action);
 
@@ -356,16 +356,16 @@
             //if (state.error) state.error(data, status, headers, config);
         };
 
-        var addNextAction = function () {
+        var addNextAction = function() {
             var unresolved = getUnresolved();
             if (_.any(unresolved)) {
                 var block = unresolved[0];
                 var action = uploadBlock(block);
 
-                action.then(function (result) {
+                action.then(function(result) {
                     block.resolved = true;
                     removeProcessedAction(action, result);
-                }, function (rejectReason) {
+                }, function(rejectReason) {
                     block.resolved = false;
                     processRejectedAction(block, action, rejectReason);
                 });
@@ -381,9 +381,9 @@
         // Get first set of blocks and kick off the upload process.
         readNextSetOfBlocks({
             state: state,
-            done: function () {
+            done: function() {
                 for (var j = 0; j < 8; j++) {
-                    if(state.blocks[j]) {
+                    if (state.blocks[j]) {
                         addNextAction(state.blocks[j]);
                     }
                 }
@@ -391,7 +391,7 @@
         });
 
         return {
-            cancel: function () {
+            cancel: function() {
                 state.cancelled = true;
             }
         };
@@ -401,7 +401,7 @@
         var uri = state.blobUri + '&comp=blocklist';
 
         var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
-        state.blocks.forEach(function (block) {
+        state.blocks.forEach(function(block) {
             requestBody += '<Latest>' + block.blockIdBase64 + '</Latest>';
         });
         requestBody += '</BlockList>';
@@ -430,15 +430,15 @@
     }
 
     function importAllScripts(libPath) {
-        var addTrailingSlash = function (str) {
+        var addTrailingSlash = function(str) {
             var lastChar = str.substr(-1);
             if (lastChar !== '/') {
-               str = str + '/';
+                str = str + '/';
             }
             return str;
         };
 
-        var addLib = function (f) {
+        var addLib = function(f) {
             importScripts(addTrailingSlash(libPath) + f);
         };
 
@@ -454,27 +454,27 @@
         self.postMessage({ type: 'ready' });
     }
 
-    self.onmessage = function (e) {
+    self.onmessage = function(e) {
 
         switch (e.data.type) {
-            case 'file':
-                setFile(e.data.file);
-                break;
-            case 'config':
-                // Setup state
-                setConfig(e.data.config);
+        case 'file':
+            setFile(e.data.file);
+            break;
+        case 'config':
+            // Setup state
+            setConfig(e.data.config);
 
-                // Load scripts first
-                importAllScripts(e.data.config.libPath);
+            // Load scripts first
+            importAllScripts(e.data.config.libPath);
 
-                // Notify when ready for an upload
-                notifyReady();
-                break;
-            case 'upload':
-                upload();
-                break;
-            default:
-                throw new Error("Don't know what to do with message of type " + e.data.type);
+            // Notify when ready for an upload
+            notifyReady();
+            break;
+        case 'upload':
+            upload();
+            break;
+        default:
+            throw new Error("Don't know what to do with message of type " + e.data.type);
         }
     };
 })();
