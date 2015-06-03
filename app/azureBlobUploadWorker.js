@@ -389,12 +389,6 @@
                 }
             }
         });
-
-        return {
-            cancel: function() {
-                state.cancelled = true;
-            }
-        };
     }
 
     function commitBlockList() {
@@ -472,6 +466,9 @@
             break;
         case 'upload':
             upload();
+            break;
+        case 'cancel':
+            state.cancelled = true;
             break;
         default:
             throw new Error("Don't know what to do with message of type " + e.data.type);

@@ -54,7 +54,11 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 }
             };
 
-            
+            return {
+                cancel: function () {
+                    worker.postMessage({ type: 'cancel' });
+                }
+            };
         }
 
         return {
