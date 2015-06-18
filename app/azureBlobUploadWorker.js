@@ -96,7 +96,7 @@
         var numberOfBlocks = 1;
 
         if (!file) {
-            throw new Error("MUST set file before setting config");
+            $log.error("MUST set file before setting config");
         }
 
         var fileSize = file.size;
@@ -156,8 +156,8 @@
 
         if (skip >= numberOfBlocks) {
             // FINISHED. WHY ARE YOU HERE?
-            done();
             config.state.readingNextSetOfBlocks = false;
+            done();
             return;
         }
 
@@ -203,9 +203,9 @@
             if (currentIndex < blocksToRead.length) {
                 readNextBlock();
             } else {
-                done();
                 config.state.blocksReadIndex = config.state.blocksReadIndex + currentIndex;
                 config.state.readingNextSetOfBlocks = false;
+                done();
             }
         };
 
@@ -242,7 +242,7 @@
         var requestData = block.data;
 
         if (requestData === null) {
-            throw new Error('Block ' + block.blockId + ' has no data to upload!');
+            $log.error('Block ' + block.blockId + ' has no data to upload!');
         }
 
         blockUploading(block);
