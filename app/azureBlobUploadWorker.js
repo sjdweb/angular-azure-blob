@@ -294,7 +294,7 @@
             state.blocks.push({
                 index: index,
                 blockId: blockId,
-                blockIdBase64: btoa(blockId),
+                blockIdBase64: base64.encode(blockId),
                 pointer: pointer,
                 size: (end - pointer),
                 end: end,
@@ -437,15 +437,25 @@
         };
 
         addLib('underscore/underscore-min.js');
-        addLib('cryptojslib/rollups/md5.js');
-        addLib('cryptojslib/components/lib-typedarrays-min.js');
-        addLib('cryptojslib/components/enc-base64-min.js');
+        addLib('crypto-js/crypto-js.js');
+        addLib('crypto-js/md5.js');
+        addLib('crypto-js/lib-typedarrays.js');
+        addLib('crypto-js/enc-base64.js');
         addLib('atomic/dist/atomic.min.js');
         addLib('q/q.js');
+        addLib('base-64/base64.js');
     }
 
     function notifyReady() {
         self.postMessage({ type: 'ready' });
+    }
+
+    function doUpload() {
+        try {
+            upload();
+        } catch(err) {
+            $log.error(err);
+        }
     }
 
     self.onmessage = function(e) {
@@ -465,7 +475,7 @@
             notifyReady();
             break;
         case 'upload':
-            upload();
+            doUpload();
             break;
         case 'cancel':
             state.cancelled = true;

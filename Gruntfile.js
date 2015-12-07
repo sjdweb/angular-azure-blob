@@ -83,11 +83,13 @@ module.exports = function(grunt) {
             'LICENSE',
             'libs/underscore/underscore-min.js',
             'libs/underscore/underscore-min.map',
-            'libs/cryptojslib/rollups/md5.js',
-            'libs/cryptojslib/components/lib-typedarrays-min.js',
-            'libs/cryptojslib/components/enc-base64-min.js',
+            'libs/crypto-js/crypto-js.js',
+            'libs/crypto-js/md5.js',
+            'libs/crypto-js/lib-typedarrays.js',
+            'libs/crypto-js/enc-base64.js',
             'libs/atomic/dist/atomic.min.js',
-            'libs/q/q.js'
+            'libs/q/q.js',
+            'libs/base-64/base64.js'
           ]
         }]
       }
