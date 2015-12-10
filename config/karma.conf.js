@@ -6,16 +6,26 @@ module.exports = function(config) {
     basePath: '../',
     frameworks: [ 'jasmine' ],
     files: [
-      // 'libs/jquery/dist/jquery.js',
-      // 'libs/angular/angular.js',
-      // 'libs/angular-mocks/angular-mocks.js',
-      // 'libs/lodash/dist/lodash.js',
-      // 'libs/underscore.string/lib/underscore.string.js',
-      // 'app/**/*.js',
-      'tests/**/*.js',
+      'libs/angular/angular.js',
+      'libs/angular-mocks/angular-mocks.js',
+      'libs/underscore/underscore-min.js',
+      'libs/crypto-js/crypto-js.js',
+      'libs/crypto-js/md5.js',
+      'libs/crypto-js/lib-typedarrays.js',
+      'libs/crypto-js/enc-base64.js',
+      'libs/atomic/dist/atomic.min.js',
+      'libs/q/q.js',
+      'libs/base-64/base64.js',
+      'app/angular/module.js',
+      'app/**/*.js',
+      'tests/**/*.js'
     ],
     preprocessors: {
       'app/**/*.js': ['coverage']
+    },
+    proxies: {
+      '/app': '/base/app',
+      '/libs': '/base/libs'
     },
     junitReporter: {
       outputFile: 'results/TEST-units.xml',

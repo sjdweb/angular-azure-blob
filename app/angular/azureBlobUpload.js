@@ -47,7 +47,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                         log(e.data.logType, e.data.message);
                         break;
                     case "error":
-                        // Handle errror
+                        // Handle error
                         break;
                     default:
                         throw new Error("Don't know what to do with message of type " + e.data.type);

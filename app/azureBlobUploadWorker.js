@@ -1,5 +1,4 @@
 (function () {
-
     if ("performance" in self === false) {
         self.performance = {};
     }
@@ -228,7 +227,6 @@
     }
 
     function uploadBlock(block) {
-
         var deferred = Q.defer();
 
         $log.debug("uploadBlock: block id = " + block.blockId);
@@ -459,29 +457,28 @@
     }
 
     self.onmessage = function(e) {
-
         switch (e.data.type) {
-        case 'file':
-            setFile(e.data.file);
-            break;
-        case 'config':
-            // Setup state
-            setConfig(e.data.config);
+            case 'file':
+                setFile(e.data.file);
+                break;
+            case 'config':
+                // Setup state
+                setConfig(e.data.config);
 
-            // Load scripts first
-            importAllScripts(e.data.config.libPath);
+                // Load scripts first
+                importAllScripts(e.data.config.libPath);
 
-            // Notify when ready for an upload
-            notifyReady();
-            break;
-        case 'upload':
-            doUpload();
-            break;
-        case 'cancel':
-            state.cancelled = true;
-            break;
-        default:
-            throw new Error("Don't know what to do with message of type " + e.data.type);
+                // Notify when ready for an upload
+                notifyReady();
+                break;
+            case 'upload':
+                doUpload();
+                break;
+            case 'cancel':
+                state.cancelled = true;
+                break;
+            default:
+                throw new Error("Don't know what to do with message of type " + e.data.type);
         }
     };
 })();

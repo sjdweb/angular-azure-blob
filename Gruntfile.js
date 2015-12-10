@@ -95,22 +95,22 @@ module.exports = function(grunt) {
       }
     },
 
-    // karma: {
-    //   options: {
-    //     configFile: 'config/karma.conf.js'
-    //   },
-    //   unit: {
-    //     singleRun: true
-    //   },
-    //   junit: {
-    //     singleRun: true,
-    //     reporters: ['junit', 'coverage']
-    //   },
-    //   continuous: {
-    //     singleRun: false,
-    //     autoWatch: true
-    //   }
-    // }
+    karma: {
+      options: {
+        configFile: 'config/karma.conf.js'
+      },
+      unit: {
+        singleRun: true
+      },
+      junit: {
+        singleRun: true,
+        reporters: ['junit', 'coverage']
+      },
+      continuous: {
+        singleRun: false,
+        autoWatch: true
+      }
+    }
   });
 
   grunt.loadNpmTasks('grunt-contrib-jshint');
@@ -121,7 +121,7 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
 
-  // grunt.loadNpmTasks('grunt-karma');
+  grunt.loadNpmTasks('grunt-karma');
 
   grunt.registerTask('dev', [ 'clean:dist', 'connect:server', 'watch:dev' ]);
   grunt.registerTask('test', [ 'clean:dist', 'jshint', 'karma:continuous' ]);

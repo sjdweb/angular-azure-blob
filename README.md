@@ -31,7 +31,7 @@ grunt package
 There will be a zip file in the dist/ folder for use.
 
 
-Reference the dist library in your SPA along with CryptoJS MD5 and Underscore.js
+Reference the minified angular module in your SPA HTML:
 ```HTML
 <script src="/dist/angular-azure-blob.js"></script>
 ```
@@ -74,8 +74,8 @@ Cross Origin Resource Sharing (CORS) must be enabled on the azure blob storage a
 
 Thanks To
 -------------
-Gaurav Mantri for this blog http://gauravmantri.com/2013/02/16/uploading-large-files-in-windows-azure-blob-storage-using-shared-access-signature-html-and-javascript
+[Gaurav Mantri for this blog](http://gauravmantri.com/2013/02/16/uploading-large-files-in-windows-azure-blob-storage-using-shared-access-signature-html-and-javascript)
 
-Stephen Brannan for his original library https://github.com/kinstephen/angular-azure-blob-upload
+[Stephen Brannan for his original library](https://github.com/kinstephen/angular-azure-blob-upload)
 
 UMG
