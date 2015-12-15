@@ -4,7 +4,7 @@
 module.exports = function(config) {
   config.set({
     basePath: '../',
-    frameworks: [ 'jasmine' ],
+    frameworks: [ 'browserify', 'jasmine' ],
     files: [
       'libs/angular/angular.js',
       'libs/angular-mocks/angular-mocks.js',
@@ -21,11 +21,15 @@ module.exports = function(config) {
       'tests/**/*.js'
     ],
     preprocessors: {
-      'app/**/*.js': ['coverage']
+      'app/**/*.js': [ 'browserify', 'coverage' ],
+      'tests/**/*.js': [ 'browserify', 'coverage' ],
     },
     proxies: {
       '/app': '/base/app',
       '/libs': '/base/libs'
+    },
+    browserify: {
+      debug: true
     },
     junitReporter: {
       outputFile: 'results/TEST-units.xml',
@@ -45,7 +49,8 @@ module.exports = function(config) {
       'karma-phantomjs-launcher',
       'karma-jasmine',
       'karma-junit-reporter',
-      'karma-coverage'
+      'karma-coverage',
+      'karma-browserify'
     ]
   });
 };

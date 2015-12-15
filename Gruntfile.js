@@ -36,10 +36,10 @@ module.exports = function(grunt) {
         src: [ 'app/angular/module.js', 'app/angular/*.js', 'tmp/*.js' ],
         dest: 'dist/angular-azure-blob.js'
       },
-      worker: {
-        src: [ 'app/azureBlobUploadWorker.js' ],
-        dest: 'dist/azure-blob-upload-worker.js'
-      }
+      //worker: {
+      //  src: [ 'app/azureBlobUploadWorker.js' ],
+      //  dest: 'dist/azure-blob-upload-worker.js'
+      //}
     },
 
     jshint: {
@@ -58,14 +58,14 @@ module.exports = function(grunt) {
     watch: {
       dev: {
         files: [ 'Gruntfile.js', 'app/*.js', ],
-        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'concat:worker', 'clean:temp' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'browserify', 'clean:temp' ],
         options: {
           atBegin: true
         }
       },
       min: {
         files: [ 'Gruntfile.js', 'app/*.js' ],
-        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'concat:worker', 'clean:temp', 'uglify:dist' ],
+        tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'browserify', 'clean:temp', 'uglify:dist' ],
         options: {
           atBegin: true
         }
@@ -110,6 +110,10 @@ module.exports = function(grunt) {
         singleRun: false,
         autoWatch: true
       }
+    },
+
+    browserify: {
+      'dist/azure-blob-upload-worker.js': ['app/azureBlobUploader.js', 'app/azureBlobUploadWorker.js']
     }
   });
 
@@ -120,12 +124,12 @@ module.exports = function(grunt) {
   grunt.loadNpmTasks('grunt-contrib-concat');
   grunt.loadNpmTasks('grunt-contrib-uglify');
   grunt.loadNpmTasks('grunt-contrib-watch');
-
   grunt.loadNpmTasks('grunt-karma');
+  grunt.loadNpmTasks('grunt-browserify');
 
   grunt.registerTask('dev', [ 'clean:dist', 'connect:server', 'watch:dev' ]);
   grunt.registerTask('test', [ 'clean:dist', 'jshint', 'karma:continuous' ]);
   grunt.registerTask('junit', [ 'clean:dist', 'jshint', 'karma:junit' ]);
   grunt.registerTask('minified', [ 'clean:dist', 'connect:server', 'watch:min' ]);
-  grunt.registerTask('package', [ 'clean:dist', 'jshint', /*'karma:unit', */'concat:dist', 'concat:worker', 'uglify:dist', 'clean:temp', 'compress:dist' ]);
+  grunt.registerTask('package', [ 'clean:dist', 'jshint', /*'karma:unit', */'concat:dist', 'browserify', 'uglify:dist', 'clean:temp', 'compress:dist' ]);
 };
