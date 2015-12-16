@@ -65,12 +65,14 @@ var Uploader = require('./azureBlobUploader');
         }, 
         error: function(error) {
             $log.error(error);
+            self.close();
         }, 
         progress: function(payload) {
             self.postMessage({ type: 'progress', payload: payload });
         },
         complete: function(payload) {
             self.postMessage({ type: 'complete', payload: payload });
+            self.close();
         }
     });
 
@@ -102,6 +104,7 @@ var Uploader = require('./azureBlobUploader');
                 break;
             case 'cancel':
                 uploader.cancel();
+                self.close();
                 break;
             default:
                 throw new Error("Don't know what to do with message of type " + e.data.type);
