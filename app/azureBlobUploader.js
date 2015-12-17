@@ -45,7 +45,7 @@ module.exports = function Uploader(config) {
 
     var state = {};
     var file = null;
-    
+
     this.setFile = function (f) {
         file = f;
     };
@@ -58,13 +58,13 @@ module.exports = function Uploader(config) {
             log({ type: 'log', logType: 'error', message: message });
         }
     };
-    
+
     this.logger = logger;
 
     function error(data, status) {
         this.log({ type: 'error', fatal: true, data: data, status: status });
     }
-    
+
     function Block(index, blockId, pointer, end) {
         this.index = index;
         this.blockId = blockId;
@@ -79,6 +79,7 @@ module.exports = function Uploader(config) {
         this.md5 = null;
         this.uploading = false;
         this.retries = 0;
+        this.startedAt = null;
 
         this.incrementRetry = function () {
             this.retries++;
@@ -172,6 +173,7 @@ module.exports = function Uploader(config) {
 
     function blockUploading(block) {
         block.uploading = true;
+        block.startedAt = Date.now();
 
         var getReadAndUnprocessed = function () {
             return state.blocks.filter(function (b) {
@@ -231,7 +233,7 @@ module.exports = function Uploader(config) {
 
         return deferred.promise;
     }
-    
+
     function commitBlockList() {
         var uri = state.blobUri + '&comp=blocklist';
 
@@ -244,14 +246,13 @@ module.exports = function Uploader(config) {
         atomic.put(uri, requestBody, {
             'x-ms-blob-content-type': state.file.type,
         }).success(function (data, req) {
-            complete({ data: data, md5: state.fileMd5.finalize().toString(CryptoJS.enc.Base64) });
+            complete({ data: data, md5: state.fileMd5.finalize().toString(CryptoJS.enc.Base64), startedAt: state.startedAt });
             logger.debug('Upload took ' + (performance.now() - state.startedUpload) + 'ms');
-        })
-            .error(function (data, req) {
-                logger.error('Put block list error ' + req.status);
-                logger.error(data);
-                error(data, req.status);
-            });
+        }).error(function (data, req) {
+            logger.error('Put block list error ' + req.status);
+            logger.error(data);
+            error(data, req.status);
+        });
     }
 
     function pad(number, length) {
@@ -312,12 +313,16 @@ module.exports = function Uploader(config) {
             cancelled: false,
             calculateFileMd5: config.calculateFileMd5 || false,
             fileMd5: arrayBufferUtils.getArrayBufferMd5Iterative(),
-            readingNextSetOfBlocks: false
+            readingNextSetOfBlocks: false,
+            percentComplete: null,
+            startedAt: null
         };
     };
 
     this.upload = function () {
         state.blocks = [];
+        state.startedAt = Date.now();
+
         var numberOfBlocks = state.numberOfBlocks;
         var index = 0;
         var totalFileSize = state.fileSize;
@@ -354,7 +359,7 @@ module.exports = function Uploader(config) {
             });
         };
 
-        var removeProcessedAction = function (action, result) {
+        var removeProcessedAction = function (block, action, result) {
             action.resolved = true;
 
             state.bytesUploaded += result.requestLength;
@@ -362,7 +367,15 @@ module.exports = function Uploader(config) {
 
             var percentComplete = ((parseFloat(state.bytesUploaded) / parseFloat(state.file.size)) * 100).toFixed(2);
 
-            progress({ percentComplete: percentComplete, result: result });
+            progress({
+                result: result,
+                previousPercentComplete: state.percentComplete,
+                percentComplete: percentComplete,
+                startedAt: block.startedAt,
+                blockSize: block.size
+            });
+
+            state.percentComplete = percentComplete;
 
             removeFromCurrentlyProcessing(action);
 
@@ -396,7 +409,7 @@ module.exports = function Uploader(config) {
 
                 action.then(function (result) {
                     block.resolved = true;
-                    removeProcessedAction(action, result);
+                    removeProcessedAction(block, action, result);
                 }, function (rejectReason) {
                     block.resolved = false;
                     processRejectedAction(block, action, rejectReason);
@@ -422,7 +435,7 @@ module.exports = function Uploader(config) {
             }
         });
     };
-    
+
     this.getState = function () {
         return _.clone(state);
     };

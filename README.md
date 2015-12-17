@@ -51,9 +51,9 @@ angular.module('appx').controller('UploadController', [
                 path: '/dist/',
                 libPath: '/libs/',
                 blobUri: xxx,
-                file: files[0],
-                process: function cb(){},
-                complete: function cb() {},
+                file: files,
+                process: function cb(file, data) {},
+                complete: function cb(file, data) {},
                 error: function cb() {},
                 blockSize: 1024, // optional
                 calculateFileMd5: false // optional, false by default
