@@ -1,11 +1,10 @@
 {
     "name": "angular-azure-blob",
-    "version": "0.0.9",
+    "version": "0.0.10",
     "dependencies": {
         "angular": "latest",
         "underscore": "latest",
         "crypto-js": "latest",
-        "q": "1.0.1",
         "atomic": "git@github.com:sjdweb/atomic.git",
         "base-64": "latest"
     },

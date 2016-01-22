@@ -51,7 +51,6 @@ var Uploader = require('./azureBlobUploader');
         addLib('crypto-js/lib-typedarrays.js');
         addLib('crypto-js/enc-base64.js');
         addLib('atomic/dist/atomic.min.js');
-        addLib('q/q.js');
         addLib('base-64/base64.js');
     }
 
@@ -59,14 +58,14 @@ var Uploader = require('./azureBlobUploader');
         self.postMessage({ type: 'ready' });
     }
 
-    var uploader = new Uploader({ 
+    var uploader = new Uploader({
         log: function(log) {
             self.postMessage({ type: log.type, logType: log.logType, message: log.message });
-        }, 
+        },
         error: function(error) {
             $log.error(error);
             self.close();
-        }, 
+        },
         progress: function(payload) {
             self.postMessage({ type: 'progress', payload: payload });
         },

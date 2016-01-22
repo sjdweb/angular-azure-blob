@@ -88,7 +88,6 @@ module.exports = function(grunt) {
             'libs/crypto-js/lib-typedarrays.js',
             'libs/crypto-js/enc-base64.js',
             'libs/atomic/dist/atomic.min.js',
-            'libs/q/q.js',
             'libs/base-64/base64.js'
           ]
         }]
