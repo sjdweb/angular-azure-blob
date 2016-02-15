@@ -1,6 +1,6 @@
 {
   "name": "angular-azure-blob",
-  "version": "0.0.10",
+  "version": "0.0.11",
   "description": "Angular Azure blob upload helper",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
