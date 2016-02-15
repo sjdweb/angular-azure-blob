@@ -360,10 +360,10 @@ this.upload = function () {
   };
 
   var removeProcessedAction = function (block, action, result) {
-    state.bytesUploaded += result.requestLength;
-    state.totalBytesRemaining -= result.requestLength;
+    state.bytesUploaded += block.size;
+    state.totalBytesRemaining -= block.size;
 
-    var percentComplete = ((parseFloat(state.bytesUploaded) / parseFloat(state.file.size)) * 100).toFixed(2);
+    var percentComplete = ((parseFloat(block.size) / parseFloat(state.file.size)) * 100).toFixed(2);
 
     progress({
       result: result,
