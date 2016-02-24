@@ -299,13 +299,11 @@ this.setConfig = function (config) {
     libPath: config.libPath,
     maxBlockSize: maxBlockSize, //Each file will be split in 256 KB.
     numberOfBlocks: numberOfBlocks,
-    totalBytesRemaining: fileSize,
     fileSize: fileSize,
     currentFilePointer: 0,
     blocks: [],
     blockIdPrefix: 'block-',
     blocksReadIndex: 0,
-    bytesUploaded: 0,
     file: file,
     blobUri: config.blobUri,
     error: config.error,
@@ -360,10 +358,15 @@ this.upload = function () {
   };
 
   var removeProcessedAction = function (block, action, result) {
-    state.bytesUploaded += block.size;
-    state.totalBytesRemaining -= block.size;
+    var totalBytesUploaded = state.blocks.filter(function(s) {
+        return s.resolved;
+    }).map(function(s) {
+        return s.size;
+    }).reduce(function(a, b){
+        return a + b;
+    });
 
-    var percentComplete = ((parseFloat(block.size) / parseFloat(state.file.size)) * 100).toFixed(2);
+    var percentComplete = ((parseFloat(totalBytesUploaded) / parseFloat(state.file.size)) * 100).toFixed(2);
 
     progress({
       result: result,
