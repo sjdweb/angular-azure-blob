@@ -201,11 +201,8 @@ module.exports = function Uploader(config) {
 
     blockUploading(block);
 
-    atomic.put(uri, requestData, {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': state.file.type,
-      'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
-    }).success(function (result, req) {
+    // Fake atomic behaviour.
+    setTimeout(function () {
       logger.debug('Put block successfully ' + block.blockId);
 
       // Clear data
@@ -214,16 +211,33 @@ module.exports = function Uploader(config) {
 
       success({
         requestLength: block.size,
-        data: result,
+        data: null,
       });
-    }).error(function (result, req) {
-      logger.error('Put block error ' + req.status);
+    }, 1500);
 
-      reject({
-        data: result,
-        status: req.status,
-      });
-    });
+    // atomic.put(uri, requestData, {
+    //   'x-ms-blob-type': 'BlockBlob',
+    //   'Content-Type': state.file.type,
+    //   'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
+    // }).success(function (result, req) {
+    //   logger.debug('Put block successfully ' + block.blockId);
+
+    //   // Clear data
+    //   block.data = null;
+    //   block.uploading = false;
+
+    //   success({
+    //     requestLength: block.size,
+    //     data: result,
+    //   });
+    // }).error(function (result, req) {
+    //   logger.error('Put block error ' + req.status);
+
+    //   reject({
+    //     data: result,
+    //     status: req.status,
+    //   });
+    // });
   }
 
   function commitBlockList() {

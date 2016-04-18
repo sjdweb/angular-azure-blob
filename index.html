@@ -9,13 +9,12 @@
     <div ng-controller="DemoController" class="container">
       <form>
         <input type="file" file-selected="selectFile($files)" />
+        <strong>Progress: {{ progress }}.</strong>
       </form>
     </div>
 
     <script type="text/javascript" src="libs/angular/angular.min.js"></script>
-    <script type="text/javascript" src="app/angular/module.js"></script>
-    <script type="text/javascript" src="app/angular/ngFileSelect.js"></script>
-    <script type="text/javascript" src="app/angular/azureBlobUpload.js"></script>
+    <script type="text/javascript" src="dist/angular-azure-blob.js"></script>
 
     <!-- <script type="text/javascript" src="libs/angular/angular.min.js"></script>
     <script type="text/javascript" src="dist/angular-azure-blob.js"></script> -->
@@ -23,17 +22,31 @@
     <script type="text/javascript">
       angular.module('azureBlobStorage').controller('DemoController', [
         '$scope', 'azureBlobUpload', function ($scope, azureBlobUpload) {
+          $scope.progress = 0;
+
           $scope.selectFile = function (files) {
             azureBlobUpload.upload({
-                workerFileName: 'azureBlobUploadWorker.js',
-                path: '/app/',
+                workerFileName: 'azure-blob-upload-worker.js',
+                path: '/dist/',
                 libPath: '/libs/',
-                blobUri: 'xxx',
-                files: files,
-                process: function cb(){},
+                getBlobUri: function (file) {
+                  return {
+                    then: function(cb) {
+                      cb('xxx');
+                    }
+                  };
+                },
+                files: files.map(function(f) {
+                  return { fileName: f.name, file: f };
+                }),
+                progress: function cb(item, payload) {
+                  $scope.$apply(function () {
+                    $scope.progress = payload.percentComplete;
+                  });
+                },
                 complete: function cb() {},
                 error: function cb() {},
-                blockSize: 1024, // optional
+                blockSize: 1024 * 1024, // optional
                 calculateFileMd5: false // optional, false by default
             });
           };

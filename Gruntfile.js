@@ -57,7 +57,7 @@ module.exports = function(grunt) {
 
     watch: {
       dev: {
-        files: [ 'Gruntfile.js', 'app/*.js', ],
+        files: [ 'Gruntfile.js', 'app/*.js', 'app/**/*.js' ],
         tasks: [ 'jshint', /*'karma:unit',*/ 'concat:dist', 'browserify', 'clean:temp' ],
         options: {
           atBegin: true
@@ -112,7 +112,8 @@ module.exports = function(grunt) {
     },
 
     browserify: {
-      'dist/azure-blob-upload-worker.js': ['app/azureBlobUploader.js', 'app/azureBlobUploadWorker.js']
+      'dist/azure-blob-upload-worker.js': ['app/azureBlobUploader.js', 'app/azureBlobUploadWorker.js'],
+      'dist/angular-azure-blob.js': ['dist/angular-azure-blob.js']
     }
   });
 

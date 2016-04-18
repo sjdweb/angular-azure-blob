@@ -33,10 +33,10 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
 
             item.cancel = function () {
                 worker.postMessage({ type: 'cancel' });
-                
+
                 processNextItem();
             };
-            
+
             // Get blob URI promise before kicking off worker
             item.config.getBlobUri(item).then(function (result) {
                 worker.postMessage({ type: 'file', file: item.file.file });
@@ -113,7 +113,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 q.cancel = null;
             });
         }
-        
+
         /* config: {
             path: // Path in the browser to this library
             workerFileName: // Optional worker file name, default: azure-blob-upload-worker.js
