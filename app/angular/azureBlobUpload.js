@@ -1,5 +1,7 @@
 angular.module('azureBlobStorage').factory('azureBlobUpload', [
     '$log', function ($log) {
+        
+        var Uploader = require('./../azureBlobUploader');
 
         var queue = [];
         var processing = false;
@@ -19,6 +21,76 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
 
         function getUnresolved() {
             return queue.filter(function (q) { return q.unresolved(); });
+        }
+        
+        function processQueueItemInMainThread(item) {
+            if (item.cancelled) {
+                return;
+            }
+
+            processing = true;
+            item.uploading = true;
+            
+            var uploader = new Uploader({
+                log: function(log) {
+                    var logTypes = { 'debug': $log.debug, 'error': $log.error };
+                    logTypes[log.logType](log.message);
+                },
+                error: function(error) {
+                    $log.error(error);
+                },
+                progress: function(payload) {
+                    item.config.progress(item, payload);
+                },
+                complete: function(payload) {
+                    complete(payload);
+                }
+            });
+
+            function doUpload() {
+                try {
+                    uploader.upload();
+                } catch(err) {
+                    $log.error(err);
+                }
+            }
+            
+            item.cancel = function () {
+                uploader.cancel();
+                processNextItem();
+            };
+
+            // Get blob URI promise before kicking off worker
+            item.config.getBlobUri(item).then(function (result) {
+                uploader.setFile(item.file.file);
+                uploader.setConfig({
+                    blobUri: result,
+                    blockSize: item.config.blockSize,
+                    calculateFileMd5: item.config.calculateFileMd5,
+                    libPath: item.config.libPath || item.config.path
+                });
+                
+                doUpload();
+            });
+
+            function processNextItem() {
+                var unresolved = getUnresolved();
+                if (unresolved[0]) {
+                    processQueueItem(unresolved[0]);
+                } else {
+                    processing = false;
+                }
+            }
+
+            function complete(payload) {
+                item.completed = true;
+                item.uploading = false;
+                item.cancel = null;
+
+                item.config.complete(item, payload);
+
+                processNextItem();
+            }
         }
 
         function processQueueItem(item) {
@@ -59,7 +131,8 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
             function processNextItem() {
                 var unresolved = getUnresolved();
                 if (unresolved[0]) {
-                    processQueueItem(unresolved[0]);
+                    // processQueueItem(unresolved[0]);
+                    processQueueItemInMainThread(unresolved[0]);
                 } else {
                     processing = false;
                 }
@@ -75,28 +148,28 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                 processNextItem();
             }
 
-            worker.onmessage = function (e) {
-                switch (e.data.type) {
-                    case "ready":
-                        // When worker is ready, kick off the upload
-                        worker.postMessage({ type: 'upload' });
-                        break;
-                    case "progress":
-                        item.config.progress(item, e.data.payload);
-                        break;
-                    case "complete":
-                        complete(e.data.payload);
-                        break;
-                    case "log":
-                        log(e.data.logType, e.data.message);
-                        break;
-                    case "error":
-                        // Handle error
-                        break;
-                    default:
-                        throw new Error("Don't know what to do with message of type " + e.data.type);
-                }
-            };
+            // worker.onmessage = function (e) {
+            //     switch (e.data.type) {
+            //         case "ready":
+            //             // When worker is ready, kick off the upload
+            //             worker.postMessage({ type: 'upload' });
+            //             break;
+            //         case "progress":
+            //             item.config.progress(item, e.data.payload);
+            //             break;
+            //         case "complete":
+            //             complete(e.data.payload);
+            //             break;
+            //         case "log":
+            //             log(e.data.logType, e.data.message);
+            //             break;
+            //         case "error":
+            //             // Handle error
+            //             break;
+            //         default:
+            //             throw new Error("Don't know what to do with message of type " + e.data.type);
+            //     }
+            // };
         }
 
         function cancelAllWorkers() {
