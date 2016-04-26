@@ -106,7 +106,7 @@ module.exports = function Uploader(config) {
 
     config.state.readingNextSetOfBlocks = true;
 
-    var fileReader = new FileReaderSync();
+    var fileReader = new FileReader();
     var skip = state.blocksReadIndex;
     var numberOfBlocks = state.numberOfBlocks;
 
@@ -124,8 +124,13 @@ module.exports = function Uploader(config) {
 
     var readNextBlock = function () {
       var fileContent = config.state.file.slice(blocksToRead[currentIndex].pointer, blocksToRead[currentIndex].end);
-      var result = fileReader.readAsArrayBuffer(fileContent);
-      loaded(result);
+      fileReader.readAsArrayBuffer(fileContent);
+    };
+    
+    fileReader.onload = function(e) {
+      if (e.target.readyState === FileReader.DONE && !config.state.cancelled) {
+        loaded(new Uint8Array(e.target.result));
+      }
     };
 
     var loaded = function (result) {
@@ -252,7 +257,12 @@ module.exports = function Uploader(config) {
     atomic.put(uri, requestBody, {
       'x-ms-blob-content-type': state.file.type,
     }).success(function (data, req) {
-      complete({ data: data, md5: state.fileMd5.finalize().toString(CryptoJS.enc.Base64), startedAt: state.startedAt });
+      var md5 = state.calculateFileMd5 ? state.fileMd5.finalize().toString(CryptoJS.enc.Base64) : null; 
+      
+      complete({ data: data,
+        md5: md5,
+        startedAt: state.startedAt
+      });
       logger.debug('Upload took ' + (performance.now() - state.startedUpload) + 'ms');
     }).error(function (data, req) {
       logger.error('Put block list error ' + req.status);

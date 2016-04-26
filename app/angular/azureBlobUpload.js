@@ -131,8 +131,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
             function processNextItem() {
                 var unresolved = getUnresolved();
                 if (unresolved[0]) {
-                    // processQueueItem(unresolved[0]);
-                    processQueueItemInMainThread(unresolved[0]);
+                    processQueueItem(unresolved[0]);
                 } else {
                     processing = false;
                 }
@@ -213,7 +212,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
             if (!processing) {
                 var unresolved = getUnresolved();
                 if (unresolved[0]) {
-                    processQueueItem(unresolved[0]);
+                    processQueueItemInMainThread(unresolved[0]);
                 }
             }
 
