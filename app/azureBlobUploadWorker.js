@@ -1,5 +1,3 @@
-var Uploader = require('./azureBlobUploader');
-
 (function () {
     if ("performance" in self === false) {
         self.performance = {};
@@ -23,6 +21,9 @@ var Uploader = require('./azureBlobUploader');
 })();
 
 (function() {
+    var arrayBufferUtils = require('./arrayBufferUtils');
+    var SparkMD5 = require('spark-md5');
+    
     var $log = {
         debug: function(message) {
             self.postMessage({ type: 'log', logType: 'debug', message: message });
@@ -53,56 +54,30 @@ var Uploader = require('./azureBlobUploader');
         addLib('atomic/dist/atomic.min.js');
         addLib('base-64/base64.js');
     }
-
+    
     function notifyReady() {
         self.postMessage({ type: 'ready' });
     }
-
-    var uploader = new Uploader({
-        log: function(log) {
-            self.postMessage({ type: log.type, logType: log.logType, message: log.message });
-        },
-        error: function(error) {
-            $log.error(error);
-            self.close();
-        },
-        progress: function(payload) {
-            self.postMessage({ type: 'progress', payload: payload });
-        },
-        complete: function(payload) {
-            self.postMessage({ type: 'complete', payload: payload });
-            self.close();
-        }
-    });
-
-    function doUpload() {
-        try {
-            uploader.upload();
-        } catch(err) {
-            $log.error(err);
-        }
+    
+    function calculateBlockMd5(blockId, blockData) {
+        var result1 = arrayBufferUtils.getArrayBufferMd5(blockData);
+        var result = SparkMD5.ArrayBuffer.hash(blockData, true);
+        self.postMessage({ type: 'blockMd5Result', result: result, blockId: blockId, blockData: blockData });
     }
 
     self.onmessage = function(e) {
         switch (e.data.type) {
-            case 'file':
-                uploader.setFile(e.data.file);
-                break;
             case 'config':
-                // Setup state
-                uploader.setConfig(e.data.config);
-
                 // Load scripts first
                 importAllScripts(e.data.config.libPath);
 
                 // Notify when ready for an upload
                 notifyReady();
                 break;
-            case 'upload':
-                doUpload();
+            case 'blockMd5':
+                calculateBlockMd5(e.data.blockId, e.data.blockData);
                 break;
-            case 'cancel':
-                uploader.cancel();
+            case 'close':
                 self.close();
                 break;
             default:

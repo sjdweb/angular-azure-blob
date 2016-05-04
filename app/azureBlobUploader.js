@@ -1,40 +1,5 @@
 /* global CryptoJS, atomic, base64, _, Q, FileReaderSync */
-var arrayBufferUtils = (function () {
-  function arraybuffer2WordArray(arrayBuffer) {
-    return CryptoJS.lib.WordArray.create(arrayBuffer);
-  }
-
-  this.getArrayBufferMd5 = function (arrayBuffer) {
-    var md5 = CryptoJS.algo.MD5.create();
-    var wordArray = arraybuffer2WordArray(arrayBuffer);
-    md5.update(wordArray);
-    return md5.finalize();
-  };
-
-  function IterativeMd5() {
-    this._md5 = null; // Lazy load
-  }
-
-  IterativeMd5.prototype.append = function (arrayBuffer) {
-    if (this._md5 === null) {
-      this._md5 = CryptoJS.algo.MD5.create();
-    }
-
-    var wordArray = arraybuffer2WordArray(arrayBuffer);
-    this._md5.update(wordArray);
-    return this;
-  };
-
-  IterativeMd5.prototype.finalize = function () {
-    return this._md5.finalize();
-  };
-
-  this.getArrayBufferMd5Iterative = function () {
-    return new IterativeMd5();
-  };
-
-  return this;
-})();
+var arrayBufferUtils = require('./arrayBufferUtils');
 
 module.exports = function Uploader(config) {
   config = config || {};
@@ -74,6 +39,7 @@ module.exports = function Uploader(config) {
     this.read = false;
     this.data = null;
     this.md5 = null;
+    this.md5Resolved = null;
     this.uploading = false;
     this.retries = 0;
     this.startedAt = null;
@@ -88,6 +54,41 @@ module.exports = function Uploader(config) {
     this.maxRetriesHit = function () {
       return this.retries === 4;
     };
+  }
+  
+  function closeWorker() {
+    state.worker.postMessage({ type: 'close' });
+  }
+  
+  function initWorker() {
+    if(!state.workerFullPath) {
+      throw new Error('workerFullPath not set');
+    }
+    
+    if(state.worker !== null) {
+      closeWorker();
+    }
+    
+    state.worker = new Worker(state.workerFullPath);
+    
+    state.worker.onmessage = function (e) {
+        switch (e.data.type) {
+            case 'ready':
+              state.workerReady = true;
+              break;
+          
+            case 'blockMd5Result':
+              // get block by id
+              var block = _.findWhere(state.blocks, { blockId: e.data.blockId });
+              block.md5 = e.data.result;
+              block.md5Resolved();
+              break;
+            default:
+              throw new Error("Don't know what to do with message of type " + e.data.type);
+        }
+    };
+    
+    state.worker.postMessage({ type: 'config', config: { libPath: state.libPath } });
   }
 
   // config { state, done, doneOne }
@@ -141,33 +142,46 @@ module.exports = function Uploader(config) {
       currentBlock.data = result;
 
       // Calculate block MD5
-      var blockMd5Start = performance.now();
-      currentBlock.md5 = arrayBufferUtils.getArrayBufferMd5(currentBlock.data);
-      var blockMd5End = performance.now();
-      logger.debug("Call to getArrayBufferMd5 for block " + currentBlock.blockId + " took " + (blockMd5End - blockMd5Start) + " milliseconds.");
+      // var blockMd5Start = performance.now();
+      // currentBlock.md5 = arrayBufferUtils.getArrayBufferMd5(currentBlock.data);
+      // var blockMd5End = performance.now();
+      // logger.debug("Call to getArrayBufferMd5 for block " + currentBlock.blockId + " took " + (blockMd5End - blockMd5Start) + " milliseconds.");
+      
+      var finalise = function () {
+        // Iterate file MD5
+        // if (config.state.calculateFileMd5) {
+        //   config.state.fileMd5.append(currentBlock.data);
+        // }
+        
+        // Useful to keep things fast
+        if (currentIndex === 0) {
+          doneOne();
+        }
 
-      // Iterate file MD5
-      if (config.state.calculateFileMd5) {
-        config.state.fileMd5.append(currentBlock.data);
-      }
+        if (currentIndex === (numberOfBlocksToRead / 2 - 1)) {
+          doneHalf();
+        }
 
-      // Useful to keep things fast
-      if (currentIndex === 0) {
-        doneOne();
+        ++currentIndex;
+        if (currentIndex < blocksToRead.length) {
+          readNextBlock();
+        } else {
+          config.state.blocksReadIndex = config.state.blocksReadIndex + currentIndex;
+          config.state.readingNextSetOfBlocks = false;
+          done();
+        }
+      };
+      
+      currentBlock.md5Resolved = function() {
+        finalise();
+        currentBlock.md5Resolved = null;
+      };
+      
+      if(currentBlock.index % 50 === 0) {
+        initWorker();
       }
-
-      if (currentIndex === (numberOfBlocksToRead / 2 - 1)) {
-        doneHalf();
-      }
-
-      ++currentIndex;
-      if (currentIndex < blocksToRead.length) {
-        readNextBlock();
-      } else {
-        config.state.blocksReadIndex = config.state.blocksReadIndex + currentIndex;
-        config.state.readingNextSetOfBlocks = false;
-        done();
-      }
+      
+      config.state.worker.postMessage({ type: 'blockMd5', blockId: currentBlock.blockId, blockData: currentBlock.data });
     };
 
     readNextBlock();
@@ -207,24 +221,7 @@ module.exports = function Uploader(config) {
     blockUploading(block);
 
     // Fake atomic behaviour.
-    // setTimeout(function () {
-    //   logger.debug('Put block successfully ' + block.blockId);
-
-    //   // Clear data
-    //   block.data = null;
-    //   block.uploading = false;
-
-    //   success({
-    //     requestLength: block.size,
-    //     data: null,
-    //   });
-    // }, 1500);
-
-    atomic.put(uri, requestData, {
-      'x-ms-blob-type': 'BlockBlob',
-      'Content-Type': state.file.type,
-      'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
-    }).success(function (result, req) {
+    setTimeout(function () {
       logger.debug('Put block successfully ' + block.blockId);
 
       // Clear data
@@ -233,19 +230,38 @@ module.exports = function Uploader(config) {
 
       success({
         requestLength: block.size,
-        data: result,
+        data: null,
       });
-    }).error(function (result, req) {
-      logger.error('Put block error ' + req.status);
+    }, 1500);
 
-      reject({
-        data: result,
-        status: req.status,
-      });
-    });
+    // atomic.put(uri, requestData, {
+    //   'x-ms-blob-type': 'BlockBlob',
+    //   'Content-Type': state.file.type,
+    //   'Content-MD5': block.md5.toString(CryptoJS.enc.Base64)
+    // }).success(function (result, req) {
+    //   logger.debug('Put block successfully ' + block.blockId);
+
+    //   // Clear data
+    //   block.data = null;
+    //   block.uploading = false;
+
+    //   success({
+    //     requestLength: block.size,
+    //     data: result,
+    //   });
+    // }).error(function (result, req) {
+    //   logger.error('Put block error ' + req.status);
+
+    //   reject({
+    //     data: result,
+    //     status: req.status,
+    //   });
+    // });
   }
 
   function commitBlockList() {
+    closeWorker();
+    
     var uri = state.blobUri + '&comp=blocklist';
 
     var requestBody = '<?xml version="1.0" encoding="utf-8"?><BlockList>';
@@ -321,7 +337,7 @@ this.setConfig = function (config) {
 
   state = {
     libPath: config.libPath,
-    maxBlockSize: maxBlockSize, //Each file will be split in 256 KB.
+    maxBlockSize: maxBlockSize, //Each file will be split in nKB.
     numberOfBlocks: numberOfBlocks,
     fileSize: fileSize,
     currentFilePointer: 0,
@@ -337,8 +353,13 @@ this.setConfig = function (config) {
     readingNextSetOfBlocks: false,
     percentComplete: null,
     startedAt: null,
-    blockListRetries: 0
+    blockListRetries: 0,
+    workerFullPath: config.workerFullPath || null,
+    worker: null,
+    workerReady: false 
   };
+  
+  initWorker();
 };
 
 this.upload = function () {

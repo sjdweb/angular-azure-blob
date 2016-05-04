@@ -2,7 +2,7 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
     '$log', function ($log) {
         
         var Uploader = require('./../azureBlobUploader');
-
+        
         var queue = [];
         var processing = false;
 
@@ -67,7 +67,8 @@ angular.module('azureBlobStorage').factory('azureBlobUpload', [
                     blobUri: result,
                     blockSize: item.config.blockSize,
                     calculateFileMd5: item.config.calculateFileMd5,
-                    libPath: item.config.libPath || item.config.path
+                    libPath: item.config.libPath || item.config.path,
+                    workerFullPath: item.config.path + (item.config.workerFileName || 'azure-blob-upload-worker.js')
                 });
                 
                 doUpload();

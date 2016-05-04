@@ -112,7 +112,7 @@ module.exports = function(grunt) {
     },
 
     browserify: {
-      'dist/azure-blob-upload-worker.js': ['app/azureBlobUploader.js', 'app/azureBlobUploadWorker.js'],
+      'dist/azure-blob-upload-worker.js': ['app/azureBlobUploadWorker.js'],
       'dist/angular-azure-blob.js': [ 'app/azureBlobUploader.js', 'app/angular/module.js', 'app/angular/*.js', 'tmp/*.js' ],
     }
   });

@@ -29,6 +29,7 @@
     "karma-phantomjs-launcher": "~0.2.1",
     "npm": "^3.5.3",
     "phantomjs": "^1.9.19",
-    "webworkify": "^1.0.2"
+    "webworkify": "^1.0.2",
+    "spark-md5": "^2.0.2"
   }
 }
